@@ -1,68 +1,350 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Student Collab App Client
 
-## Available Scripts
+## Setup
 
-In the project directory, you can run:
+### Initialize Project
+1. create-react-app student-collab-client
+2. cd student-collab-client
+3. npm start
+4. clean up index.js
+```javascript
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './App';
 
-### `npm start`
+ReactDOM.render(<App />, document.getElementById('root'));
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+5. clean up App.js
+```javascript
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      columnOrder: [],
+      columns: {},
+      tasks: {},
+    };
+  }
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+  render() {
+    return 'Hello World';
+  }
+```
+6. Get columns and tasks data from api
+```
+getData = async () => {
+    const columnOrderData = await fetch('http://localhost:5000/api/v1/columnOrder');
+    const columnOrder = await columnOrderData.json();
+    const columnsData = await fetch('http://localhost:5000/api/v1/columns');
+    const columns = await columnsData.json();
+    const tasksData = await fetch('http://localhost:5000/api/v1/tasks');
+    const tasks = await tasksData.json();
+    this.setState({
+      columnOrder: columnOrder.data,
+      columns: columns.data,
+      tasks: tasks.data,
+    });
+  }
 
-### `npm test`
+  componentDidMount() {
+    this.getData();
+  }
+```
+7. Test if you really have the data
+```
+render() {
+    const { columnOrder, columns, tasks } = this.state;
+    console.log(columnOrder);
+    return 'Hello World';
+  }
+```
+8. Map the tasks and columns
+```
+render() {
+    const { columnOrder, columns, tasks } = this.state;
+    return columnOrder.map(colId => {
+      const col = columns[colId];
+      const tsk = col.taskIds.map(tskId => tasks[tskId]);
+      return <Column key={col.id} column={col} tasks={tsk} />
+    });
+  }
+```
+9. Import Column
+`import Column from './components/column';`
+10. Create './components/column.js'
+```
+import React from 'react';
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+class Column extends React.Component {
+  render() {
+  	const { column } = this.props;
+  	return column.title;
+  }
+}
 
-### `npm run build`
+export default Column;
+```
+11. install styled-components
+`npm install --save styled-components @atlaskit/css-reset`
+12. in App.js
+`import '@atlaskit/css-reset';`
+13. in column.js
+```
+import React from 'react';
+import styled from 'styled-components';
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+const Container = styled.div``;
+const Title = styled.h3``;
+const TaskList = styled.div``;
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+class Column extends React.Component {
+  render() {
+  	const { column } = this.props;
+  	return (
+  		<Container>
+  		  <Title>{column.title}</Title>
+  		  <TaskList>Tasks go here</TaskList>
+  		</Container>);
+  }
+}
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+export default Column;
+```
+14. add some styling
+```
+const Container = styled.div`
+  margin: 8px;
+  border: 1px solid lightgrey;
+  border-radius: 2px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+const Title = styled.h3`
+  padding: 8px;
+`;
+const TaskList = styled.div`
+  padding: 8px;
+  transition: background-color 0.2 ease;
+  background-color: white
+  flex-grow: 1;
+  min-height: 100px;
+  `;
+```
+15. npm install --save react-beautiful-dnd
 
-### `npm run eject`
+...TODO, improve step by step from here
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+16. finish up column container
+```
+import React from 'react';
+import styled from 'styled-components';
+import { Droppable } from 'react-beautiful-dnd';
+import Task from './task';
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+const Container = styled.div`
+  margin: 8px;
+  border: 1px solid lightgrey;
+  border-radius: 2px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+const Title = styled.h3`
+  padding: 8px;
+`;
+const TaskList = styled.div`
+  padding: 8px;
+  transition: background-color 0.2 ease;
+  background-color: ${props => (props.isDraggingOver ? 'lightgrey' : 'white')}
+  flex-grow: 1;
+  min-height: 100px;
+  `;
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+class Column extends React.Component {
+  render() {
+  	const { column, tasks } = this.props;
+  	return (
+  		<Container>
+        <Title>{column.title}</Title>
+        <Droppable droppableId={column.id}>
+          {(provided, snapshot) => (
+            <TaskList
+              ref={provided.innerRef}
+              innerRef={provided.innerRef}
+              {...provided.droppableProps}
+              isDraggingOver={snapshot.isDraggingOver}
+            >
+              {tasks.map((task, index) => <Task key={task.id} task={task} index={index} />)}
+              {provided.placeholder}
+            </TaskList>
+          )}
+        </Droppable>
+      </Container>
+  	);
+  }
+}
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+export default Column;
+```
+17. Create Tasks
+```
+import React from 'react';
+import styled from 'styled-components';
+import { Draggable } from 'react-beautiful-dnd';
 
-## Learn More
+const Container = styled.div`
+  border: 1px solid lightgrey;
+  border-radius: 2px;
+  padding: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.2 ease;
+  background-color: ${props => (props.isDragging ? 'royalblue' : 'white')};
+  color: ${props => (props.isDragging ? 'white' : 'black')};
+`;
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+export default class Task extends React.Component {
+  render() {
+    return (
+      <Draggable
+        draggableId={this.props.task.id}
+        index={this.props.index}
+      >
+        {(provided, snapshot) => (
+          <Container
+            ref={provided.innerRef}
+            innerRef={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            isDragging={snapshot.isDragging}
+          >
+            {this.props.task.content}
+          </Container>
+        )}
+      </Draggable>
+    );
+  }
+}
+```
+18. Update App.js
+```
+import React from 'react';
+import Column from './components/column';
+import '@atlaskit/css-reset';
+import styled from 'styled-components';
+import { DragDropContext } from 'react-beautiful-dnd';
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+const Container = styled.div`
+    display: flex;
+`;
 
-### Code Splitting
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      columnOrder: [],
+      columns: {},
+      tasks: {},
+    };
+  }
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+  getData = async () => {
+    const columnOrderData = await fetch('http://localhost:5000/api/v1/columnOrder');
+    const columnOrder = await columnOrderData.json();
+    const columnsData = await fetch('http://localhost:5000/api/v1/columns');
+    const columns = await columnsData.json();
+    const tasksData = await fetch('http://localhost:5000/api/v1/tasks');
+    const tasks = await tasksData.json();
+    this.setState({
+      columnOrder: columnOrder.data,
+      columns: columns.data,
+      tasks: tasks.data,
+    });
+  }
 
-### Analyzing the Bundle Size
+  componentDidMount() {
+    this.getData();
+  }
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
 
-### Making a Progressive Web App
+  onDragEnd = result => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId &&
+    destination.index === source.index) {
+        return;
+    }
+    //handle reordering
+    const { columns } = this.state;
+    const start = columns[source.droppableId];
+    const end = columns[destination.droppableId];
+    if (start === end) {
+      const newTaskIds = Array.from(start.taskIds);
+      newTaskIds.splice(source.index, 1);
+      newTaskIds.splice(destination.index, 0, draggableId);
+      const newColumn = {
+        ...start,
+        taskIds: newTaskIds,
+      };
+      const newState = {
+        ...this.state,
+        columns: {
+          ...columns,
+          [newColumn.id]: newColumn,
+        },
+      };
+      this.setState(newState);
+      return;
+    }
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+    // Move to another list
+    const startTaskIds = Array.from(start.taskIds);
+    startTaskIds.splice(source.index, 1);
+    const newStart = {
+      ...start,
+      taskIds: startTaskIds,
+    };
 
-### Advanced Configuration
+    const endTaskIds = Array.from(end.taskIds);
+    endTaskIds.splice(destination.index, 0 ,draggableId);
+    const newEnd = {
+      ...end,
+      taskIds: endTaskIds,
+    };
+    const newState = {
+      ...this.state,
+      columns: {
+        ...columns,
+        [newEnd.id]: newEnd,
+        [newStart.id]: newStart,
+      },
+    };
+    this.setState(newState);
+    return;
+  }
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+  render() {
+    const { columnOrder, columns, tasks } = this.state;
+    return (<DragDropContext
+      onDragEnd={this.onDragEnd}
+      onDragStart={this.onDragStart}
+    >
+    <Container>
+      {columnOrder.map(colId => {
+        const col = columns[colId];
+        const tsk = col.taskIds.map(tskId => tasks[tskId]);
+        return <Column key={col.id} column={col} tasks={tsk} />
+      })}
+    </Container>
+    </DragDropContext>);
+  }
+}
 
-### Deployment
+export default App;
+```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
 
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+### Start Project
+1. `npm start`
+2. Open [http://localhost:5000/api/v1/tasks](http://localhost:5000/api/v1/todos)
